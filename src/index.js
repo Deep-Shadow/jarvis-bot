@@ -47,6 +47,10 @@ const {
     tiktok,
     gemini
 } = require("./services/dark-shadow-api");
+const {
+    attp,
+    ttp 
+} = require("./services/spider-x-api.js");
 const { upload } = require("./services/upload");
 const {
     activateAntiLinkGroup,
