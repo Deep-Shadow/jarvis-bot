@@ -50,7 +50,7 @@ const {
     attp,
     ttp,
     gemini
-} = require("./services/spider-x-api.js");
+} = require("./services/spider-x-api");
 const { upload } = require("./services/upload");
 const {
     activateAntiLinkGroup,
@@ -1459,15 +1459,6 @@ async function startBot({ socket, data, startProcess }) {
             case "teste":
             case "test":
             case "tst": {
-                await sendGifFromFile(
-                    `${ASSETS_DIR}/stickers/round-six/squid-game-red-light-green-light.mp4`,
-                    "*Batatinha frita 1, 2, 3....*"
-                );
-
-                addGroup(`${DATABASE_DIR}/round-groups`, remoteJid);
-                await sendReply(
-                    `Round Started: ${checkIfStartRound(remoteJid)}`
-                );
                 return await sendSuccessReply("Teste concluido!");
                 break;
             }
