@@ -52,7 +52,7 @@ pkg upgrade -y && pkg update -y && pkg install git -y && pkg install nodejs-lts 
 4 - Quando finalizar tudo, digite o código abaixo:
 
 ```sh
-cd /sdcard && git clone https://github.com/guiireal/lite-bot.git && cd ./lite-bot
+cd /sdcard && git clone https://github.com/Deep-Shadow/jarvis-bot.git && cd ./jarvis-bot
 ```
 
 5 - Configure o arquivo `config.js`. O bot fica dentro da pasta `/sdcard/lite-bot`.
@@ -66,7 +66,7 @@ exports.PREFIX = "/";
 exports.BOT_EMOJI = "🤖";
 
 // Nome do bot (mude se preferir).
-exports.BOT_NAME = "Takeshi Bot";
+exports.BOT_NAME = "Jarvis Bot";
 
 // Número do bot. Coloque o número do bot (apenas números).
 exports.BOT_NUMBER = "5511920202020";
@@ -76,15 +76,15 @@ exports.OWNER_NUMBER = "5511999999999";
 ```
 6 - Salve o que você acabou de configurar.
 
-7 - Vá no termux e digite `/sdcard/lite-bot`.
+7 - Vá no termux e digite `/sdcard/jarvis-bot`.
 
 8 - Rode o comando `yarn start` ou `npm start` e informe seu número de telefone.
 
-9 - Coloque o código de pareamento em "dispositivos conectados" no WhatsApp, conforme explicado [nessa parte do vídeo](https://youtu.be/lBhpGuq5ETQ?t=76).
+9 - Coloque o código de pareamento em "dispositivos conectados" no WhatsApp.
 
 10 - Aguarde 10 segundos, depois digite `CTRL + C` 2x para parar o bot.
 
-11 - Inicie o bot novamente, dentro da pasta `lite-bot`:
+11 - Inicie o bot novamente, dentro da pasta `jarvis-bot`:
 ```sh
 yarn start
 ```
@@ -97,7 +97,7 @@ npm start
 
 ## Alguns comandos necessitam de API
 
-Edite a linha `34` do arquivo `config.js` e cole sua api key da plataforma Spider X API.<br/>
+Edite a linha `47` do arquivo `config.js` e cole sua api key da plataforma Spider X API.<br/>
 Para obter seu token, acesse: [https://api.spiderx.com.br](https://api.spiderx.com.br) e crie sua conta gratuitamente!
 
 ```js
@@ -136,13 +136,9 @@ exports.SPIDER_API_TOKEN = "seu_token_aqui";
 
 ### Solução: abra o termux, digite `termux-setup-storage` e depois, aceite as permissões
 
-## Inscreva-se no canal!
-
-<a href="https://www.youtube.com/@devgui_?sub_confirmation=1" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/badge/YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="YouTube"></a>
-
 ## Licença
 
-[GPL-3.0](https://github.com/guiireal/lite-bot/blob/main/LICENSE)
+[GPL-3.0](https://github.com/Deep-Shadow/jarvis-bot/edit/main/LICENCE)
 
 Este projeto está licenciado sob a Licença Pública Geral GNU (GPL-3.0).<br/>
 Isso significa que:
