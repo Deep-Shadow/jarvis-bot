@@ -55,7 +55,7 @@ pkg upgrade -y && pkg update -y && pkg install git -y && pkg install nodejs-lts 
 cd /sdcard && git clone https://github.com/Deep-Shadow/jarvis-bot.git && cd ./jarvis-bot
 ```
 
-5 - Configure o arquivo `config.js`. O bot fica dentro da pasta `/sdcard/lite-bot`.
+5 - Configure o arquivo `config.js`. O bot fica dentro da pasta `/sdcard/jarvis-bot`.
 _Use o [MT Manager](https://www.mediafire.com/file/y09xgucgygmt1ny/MT_Manager_2.16.7_Dev_Gui.apk/file) ou o [ZArchiver](https://play.google.com/store/apps/details?id=ru.zdevs.zarchiver&hl=pt_BR) para fazer isso (localizar a pasta)._
 
 ```js
@@ -100,28 +100,56 @@ npm start
 Edite a linha `47` do arquivo `config.js` e cole sua api key da plataforma Spider X API.<br/>
 Para obter seu token, acesse: [https://api.spiderx.com.br](https://api.spiderx.com.br) e crie sua conta gratuitamente!
 
+Edite a linha `50` do arquivo `config.js` e cole sua api key da plataforma Shadow API.<br/>
+Para obter seu token, acesse: [https://api.spiderx.com.br](https://shadow-api-3vz5.onrender.com) e crie sua conta gratuitamente!
+
 ```js
 exports.SPIDER_API_TOKEN = "seu_token_aqui";
 ```
 ## Funcionalidades
-
-| Função | Online? | Contexto | Requer a Spider X API?
-| ------------ | --- | --- | ---
-| Desligar o bot no grupo | ✅ | Dono | ❌
-| Ligar o bot no grupo | ✅ | Dono | ❌
-| Anti link | ✅ | Admin | ❌
-| Banir membros | ✅ | Admin | ❌
-| Ligar/desligar boas vindas | ✅ | Admin | ❌
-| Marcar todos | ✅ | Admin | ❌
-| Busca CEP | ✅ | Membro | ❌
-| Figurinha de texto animada | ✅ | Membro | ✅
-| Figurinha de texto | ✅ | Membro | ✅
-| Geração de imagens com IA | ✅ | Membro | ❌
-| GPT 4 | ✅ | Membro | ✅
-| Ping | ✅ | Membro | ❌
-| Play áudio | ✅ | Membro | ✅
-| Play vídeo | ✅ | Membro | ✅
-| Sticker | ✅ | Membro | ❌
+| Função | Online? | Contexto | Requer API? |
+|---|---|---|---|
+| Desligar o bot no grupo | ✅ | Dono | ❌ |
+| Ligar o bot no grupo | ✅ | Dono | ❌ |
+| Executar comandos do sistema | ✅ | Dono | ❌ |
+| Definir imagem do menu | ✅ | Dono | ❌ |
+| Abrir o grupo | ✅ | Admin | ❌ |
+| Anti link | ✅ | Admin | ❌ |
+| Banir membros | ✅ | Admin | ❌ |
+| Apagar mensagem do bot | ✅ | Admin | ❌ |
+| Fechar o grupo | ✅ | Admin | ❌ |
+| Marcar todos | ✅ | Admin | ❌ |
+| Limpar o chat do grupo | ✅ | Admin | ❌ |
+| Promover a administrador | ✅ | Admin | ❌ |
+| Rebaixar administrador | ✅ | Admin | ❌ |
+| Fazer pergunta ao bot (IA) | ✅ | Membro | ✅ |
+| Figurinha de texto animada | ✅ | Membro | ✅ |
+| Aplicar desfoque em imagem | ✅ | Membro | ❌ |
+| Busca CEP | ✅ | Membro | ✅ |
+| Aplicar contraste em imagem | ✅ | Membro | ❌ |
+| Rolar dado | ✅ | Membro | ❌ |
+| Criar enquete | ✅ | Membro | ❌ |
+| Espelhar imagem | ✅ | Membro | ❌ |
+| Criar mensagem fake | ✅ | Membro | ❌ |
+| Obter JID/LID de contato | ✅ | Membro | ❌ |
+| Converter imagem para escala de cinza | ✅ | Membro | ❌ |
+| Baixar vídeos do Instagram | ✅ | Membro | ✅ |
+| Silenciar membro no grupo | ✅ | Membro | ❌ |
+| Mostrar perfil de usuário | ✅ | Membro | ❌ |
+| Verificar tempo de resposta (Ping) | ✅ | Membro | ❌ |
+| Baixar mídia do Pinterest | ✅ | Membro | ✅ |
+| Aplicar pixelização em imagem | ✅ | Membro | ❌ |
+| Baixar e enviar áudio do YouTube | ✅ | Membro | ✅ |
+| Baixar e enviar vídeo do YouTube | ✅ | Membro | ✅ |
+| Exibir JSON da mensagem atual | ✅ | Membro | ❌ |
+| Renomear figurinha | ✅ | Membro | ❌ |
+| Revelar imagem/vídeo temporário | ✅ | Membro | ❌ |
+| Criar figurinha | ✅ | Membro | ❌ |
+| Pesquisar e enviar vídeo do TikTok | ✅ | Membro | ✅ |
+| Converter figurinha para imagem | ✅ | Membro | ❌ |
+| Figurinha de texto estática | ✅ | Membro | ✅ |
+| Gerar link para imagem enviada | ✅ | Membro | ❌ |
+| Comando de teste | ✅ | Membro | ❌ |
 
 ## Erros comuns
 
