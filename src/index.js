@@ -44,12 +44,12 @@ const {
 const {
     play,
     pinterest_search,
-    tiktok,
-    gemini
+    tiktok
 } = require("./services/dark-shadow-api");
 const {
     attp,
-    ttp 
+    ttp,
+    gemini
 } = require("./services/spider-x-api.js");
 const { upload } = require("./services/upload");
 const {
