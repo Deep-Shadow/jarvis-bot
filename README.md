@@ -99,11 +99,15 @@ npm start
 Edite a linha `47` do arquivo `config.js` e cole sua api key da plataforma Spider X API.<br/>
 Para obter seu token, acesse: [https://api.spiderx.com.br](https://api.spiderx.com.br) e crie sua conta gratuitamente!
 
+```js
+exports.SPIDER_API_TOKEN = "seu_token_aqui";
+```
+
 Edite a linha `50` do arquivo `config.js` e cole sua api key da plataforma Shadow API.<br/>
 Para obter seu token, acesse: [https://api.spiderx.com.br](https://shadow-api-3vz5.onrender.com) e crie sua conta gratuitamente!
 
 ```js
-exports.SPIDER_API_TOKEN = "seu_token_aqui";
+exports.SHADOW_API_TOKEN = "seu_token_aqui";
 ```
 ## Funcionalidades
 | Função | Online? | Contexto | Requer API? |
