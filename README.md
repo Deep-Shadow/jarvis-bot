@@ -104,7 +104,7 @@ exports.SPIDER_API_TOKEN = "seu_token_aqui";
 ```
 
 Edite a linha `50` do arquivo `config.js` e cole sua api key da plataforma Shadow API.<br/>
-Para obter seu token, acesse: [https://shadow-api-3vz5.onrender.com/home](https://shadow-api-3vz5.onrender.com) e crie sua conta gratuitamente!
+Para obter seu token, acesse: [https://shadow-api-3vz5.onrender.com](https://shadow-api-3vz5.onrender.com) e crie sua conta gratuitamente!
 
 ```js
 exports.SHADOW_API_TOKEN = "seu_token_aqui";
