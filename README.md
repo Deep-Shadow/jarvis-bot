@@ -169,7 +169,7 @@ exports.SHADOW_API_TOKEN = "seu_token_aqui";
 
 ## Licença
 
-[GPL-3.0](https://github.com/Deep-Shadow/jarvis-bot/edit/main/LICENCE)
+[GPL-3.0](https://github.com/Deep-Shadow/jarvis-bot?tab=License-1-ov-file)
 
 Este projeto está licenciado sob a Licença Pública Geral GNU (GPL-3.0).<br/>
 Isso significa que:
