@@ -139,7 +139,7 @@ exports.SHADOW_API_TOKEN = "seu_token_aqui";
 | Baixar vídeos do Instagram | ✅ | Membro | ✅ |
 | Silenciar membro no grupo | ✅ | Membro | ❌ |
 | Mostrar perfil de usuário | ✅ | Membro | ❌ |
-| Verificar tempo de resposta (Ping) | ✅ | Membro | ❌ |
+| Verificar tempo de resposta | ✅ | Membro | ❌ |
 | Baixar mídia do Pinterest | ✅ | Membro | ✅ |
 | Aplicar pixelização em imagem | ✅ | Membro | ❌ |
 | Baixar e enviar áudio do YouTube | ✅ | Membro | ✅ |
