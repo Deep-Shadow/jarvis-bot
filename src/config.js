@@ -54,7 +54,7 @@ exports.SPIDER_API_BASE_URL = "https://api.spiderx.com.br/api";
 exports.SHADOW_API_BASE_URL = "https://shadow-api-3vz5.onrender.com/api";
 
 // Obtenha seu token, criando uma conta em: https://api.spiderx.com.br
-exports.SPIDER_API_TOKEN = "Ytu84FgrwE4Mfil5yC64";
+exports.SPIDER_API_TOKEN = "seu_token_aqui";
 
 // Obtenha seu token, criando uma conta em: https://shadow-api-3vz5.onrender.com
 exports.SHADOW_API_TOKEN = "seu_token_aqui";
