@@ -19,7 +19,7 @@ const {
     proto,
     isJidNewsletter,
     makeCacheableSignalKeyStore
-} = require("baileys");
+} = require("baileys-mod");
 const pino = require("pino");
 const NodeCache = require("node-cache");
 

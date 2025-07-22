@@ -4,6 +4,8 @@
  *
  * @author MRX@DEV
  */
+
+
 (async () => {
-  console.log("Apenas testando");
+  console.log(`Teste concluido`);
 })();

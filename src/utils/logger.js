@@ -6,6 +6,7 @@
 const { version } = require("../../package.json");
 const { BOT_NAME } = require("../config");
 const readline = require("node:readline");
+const cfonts = require("cfonts");
 
 const botName = BOT_NAME.replace(" BOT", "");
 
@@ -45,9 +46,12 @@ function warningLog(message) {
 }
 
 function bannerLog() {
-  console.log(`\x1b[${textColor.cyan}m░█░░░▀█▀░▀█▀░█▀▀░░░█▀▄░█▀█░▀█▀\x1b[0m`);
-  console.log(`░█░░░░█░░░█░░█▀▀░░░█▀▄░█░█░░█░`);
-  console.log(`\x1b[${textColor.cyan}m░▀▀▀░▀▀▀░░▀░░▀▀▀░░░▀▀░░▀▀▀░░▀░\x1b[0m`);
+  const banner = cfonts.render(botName, {
+    type: "block",
+    colors: ["cyan"],
+    env: "node"
+  })
+  console.log(banner.string)
   console.log(`\x1b[${textColor.cyan}m🤖 Versão: \x1b[0m${version}\n`);
 }
 

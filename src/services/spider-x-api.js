@@ -48,7 +48,7 @@ exports.download = async (type, url) => {
     return data;
 };
 
-exports.gemini = async text => {
+exports.gemini = async (text) => {
     if (!text) {
         throw new Error("Você precisa informar o parâmetro de texto!");
     }
@@ -67,7 +67,7 @@ exports.gemini = async text => {
     return data.response;
 };
 
-exports.attp = async text => {
+exports.attp = async (text) => {
     if (!text) {
         throw new Error("Você precisa informar o parâmetro de texto!");
     }
@@ -81,7 +81,7 @@ exports.attp = async text => {
     )}&api_key=${SPIDER_API_TOKEN}`;
 };
 
-exports.ttp = async text => {
+exports.ttp = async (text) => {
     if (!text) {
         throw new Error("Você precisa informar o parâmetro de texto!");
     }

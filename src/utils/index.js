@@ -112,9 +112,15 @@ function deleteTempFile(file) {
 }
 
 function formatCommand(text) {
-    return onlyLettersAndNumbers(
-        removeAccentsAndSpecialCharacters(text.toLocaleLowerCase().trim())
-    );
+    if (!text) {
+        return "";
+    }
+    return text
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9-]/g, "")
+        .toLocaleLowerCase()
+        .trim();
 }
 
 function splitByCharacters(str, characters) {

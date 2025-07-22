@@ -17,8 +17,12 @@
     "license": "MIT",
     "dependencies": {
         "axios": "^1.10.0",
-        "baileys": "^6.7.18",
+        "baileys": "npm:baileys-mod@^6.8.5",
+        "baileys-mod": "^6.8.5",
+        "cfonts": "^3.3.0",
+        "cheerio": "^1.1.0",
         "correios-brasil": "^3.0.6",
+        "jimp": "^0.16.13",
         "node-cache": "^5.1.2",
         "node-webpmux": "^3.2.1"
     }

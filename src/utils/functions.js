@@ -134,6 +134,33 @@ function loadCommandFunctions({ socket, data }) {
         );
     };
 
+    const sendPaymentRequest = async (
+        remoteJid,
+        value,
+        currencyCode,
+        caption
+    ) => {
+        const amount1000Value = value * 10;
+
+        const paymentDetails = {
+            requestPaymentMessage: {
+                currencyCodeIso4217: currencyCode,
+                amount1000: amount1000Value.toString(),
+                noteMessage: {
+                    extendedTextMessage: { text: caption ? caption : "" }
+                },
+                expiryTimestamp: "0",
+                amount: {
+                    value: value.toString(),
+                    offset: 2,
+                    currencyCode: currencyCode
+                }
+            }
+        };
+
+        await socket.relayMessage(remoteJid, paymentDetails, {});
+    };
+
     const sendWarningReply = async (text, mentions = []) => {
         await sendWarningReact();
         return sendReply(`⚠️ Atenção! ${text}`, mentions);
@@ -412,6 +439,65 @@ function loadCommandFunctions({ socket, data }) {
             }
         });
 
+    const sendContact = async (displayName, phoneNumber, quoted = true) => {
+        const cleanPhoneNumber = onlyNumbers(phoneNumber);
+
+        if (cleanPhoneNumber.length < 10 || cleanPhoneNumber.length > 15) {
+            throw new Error("Número de telefone inválido!");
+        }
+
+        const vcard = `BEGIN:VCARD\nVERSION:3.0\nN:;${displayName};;;\nFN:${displayName}\nitem1.TEL;waid=${cleanPhoneNumber}:+${cleanPhoneNumber}\nitem1.X-ABLabel:Celular\nEND:VCARD`;
+
+        return socket.sendMessage(
+            remoteJid,
+            {
+                contacts: {
+                    displayName: displayName,
+                    contacts: [{ vcard }]
+                }
+            },
+            quoted ? { quoted: webMessage } : {}
+        );
+    };
+
+    const sendButton = async (
+        text,
+        buttons,
+        footer,
+        header = { type: "text" },
+        quoted = true
+    ) => {
+        const buttonsMessage = {
+            contentText: `${BOT_EMOJI} ${text}`,
+            footerText: footer,
+            buttons: buttons.map(btn => ({
+                buttonId: btn.id,
+                buttonText: {
+                    displayText: btn.text
+                },
+                type: "RESPONSE"
+            })),
+            headerType: header.type === "image" ? "IMAGE" : "TEXT"
+        };
+
+        if (header.type === "image" && header.content) {
+            buttonsMessage.imageMessage = {
+                url: header.content,
+                mimetype: "image/jpeg"
+            };
+        } else {
+            if (header.type === "text" && header.content) {
+                buttonsMessage.text = `${BOT_EMOJI} ${header.content}`;
+            }
+        }
+
+        return await socket.sendMessage(
+            remoteJid,
+            buttonsMessage,
+            quoted ? { quoted: webMessage } : {}
+        );
+    };
+
     const deleteMessage = async key => {
         const { id, remoteJid, participant } = key;
         await socket.sendMessage(remoteJid, {
@@ -486,6 +572,7 @@ function loadCommandFunctions({ socket, data }) {
         sendAudioFromBuffer,
         sendAudioFromFile,
         sendAudioFromURL,
+        sendButton,
         sendDocumentFromBuffer,
         sendDocumentFromFile,
         sendDocumentFromURL,
@@ -498,6 +585,8 @@ function loadCommandFunctions({ socket, data }) {
         sendImageFromFile,
         sendImageFromURL,
         sendPoll,
+        sendPaymentRequest,
+        sendContact,
         sendReact,
         sendRecordState,
         sendReply,

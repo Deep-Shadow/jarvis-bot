@@ -20,13 +20,15 @@ const axios = require("axios");
 const { consultarCep } = require("correios-brasil/dist");
 
 const {
-    TEMP_DIR,
     ASSETS_DIR,
     BOT_EMOJI,
     BOT_NUMBER,
     BOT_NAME,
     DATABASE_DIR,
-    OWNER_NUMBER
+    DEVELOPER_MODE,
+    ONLY_GROUP_ID,
+    OWNER_NUMBER,
+    TEMP_DIR
 } = require("./config");
 const {
     DangerError,
@@ -48,29 +50,33 @@ const {
 } = require("./services/dark-shadow-api");
 const {
     attp,
-    ttp,
-    gemini
+    canvas,
+    download,
+    gemini,
+    imageAI,
+    search,
+    ttp
 } = require("./services/spider-x-api");
 const { upload } = require("./services/upload");
 const {
     activateAntiLinkGroup,
     activateAutoResponderGroup,
+    activateAntiOwnerTag,
     activateGroup,
     addGroup,
-    checkIfMemberIsMuted,
     deactivateAntiLinkGroup,
+    deactivateAntiOwnerTag,
     deactivateAutoResponderGroup,
     deactivateGroup,
     getAutoResponderResponse,
     isActiveAntiLinkGroup,
     isActiveAutoResponderGroup,
+    isActiveAntiOwnerTagGroup,
     isActiveGroup,
-    isActiveRoundGroup,
-    muteMember,
-    unmuteMember
+    isActiveRoundGroup
 } = require("./utils/database");
 const { loadCommandFunctions } = require("./utils/functions");
-const { errorLog } = require("./utils/logger");
+const { errorLog, infoLog } = require("./utils/logger");
 const { menu } = require("./utils/menu");
 const {
     checkPrefix,
@@ -140,6 +146,8 @@ async function startBot({ socket, data, startProcess }) {
         sendImageFromFile,
         sendImageFromURL,
         sendPoll,
+        sendPaymentRequest,
+        sendContact,
         sendReact,
         sendRecordState,
         sendReply,
@@ -166,36 +174,74 @@ async function startBot({ socket, data, startProcess }) {
         return;
     }
 
-    if (!checkPrefix(prefix)) {
-        if (isActiveGroup(remoteJid)) {
-            if (isActiveAutoResponderGroup(remoteJid)) {
-                const response = getAutoResponderResponse(body);
-                if (response) {
-                    await sendReply(response);
-                }
-            }
-        }
+    if (ONLY_GROUP_ID && ONLY_GROUP_ID != remoteJid) {
+        return;
     }
 
     if (
-        !checkPrefix(prefix) &&
-        isActiveAntiLinkGroup(remoteJid) &&
-        isLink(body) &&
-        !(await isAdmin(userJid, remoteJid, socket))
+        isActiveAntiOwnerTagGroup(remoteJid) &&
+        body.includes(OWNER_NUMBER) &&
+        !userJid.includes(OWNER_NUMBER) &&
+        !userJid.includes(BOT_NUMBER)
     ) {
-        await ban(remoteJid, userJid);
-        await sendReply(
-            "Anti-link ativado! Você foi removido por enviar um link!"
+        try {
+            await ban(remoteJid, userJid);
+            return await sendReply("Nunca mais marque meu dono!");
+        } catch (error) {
+            return await sendErrorReply(
+                "Eu preciso ser administrador para remover membros!"
+            );
+        }
+    }
+
+    if (DEVELOPER_MODE && isActiveGroup(remoteJid)) {
+        console.log(
+            `\n\n<========== ( MESSAGE RECEBIDA ) ==========>\n\n${JSON.stringify(
+                webMessage,
+                null,
+                2
+            )}`
         );
-        return;
     }
 
     if (!checkPrefix(prefix)) {
+        if (isGroup && isActiveAutoResponderGroup(remoteJid)) {
+            const response = getAutoResponderResponse(body);
+            if (response) {
+                await sendReply(response);
+            }
+        }
+
+        if (
+            isGroup &&
+            isActiveAntiLinkGroup(remoteJid) &&
+            isLink(body) &&
+            !(await isAdmin(userJid, remoteJid, socket))
+        ) {
+            await ban(remoteJid, userJid);
+            await sendReply(
+                "Anti-link ativado! Você foi removido por enviar um link!"
+            );
+            return;
+        }
+
         return;
     }
 
+    // ⚠️ ATENÇÃO ⚠️
+    /**
+     Não coloque nada acima, as cases são definidas a baixo
+     sempre crie cases privadas para evitar conflito entre constantes e funções
+      
+     exemplo:
+         case "nome": {
+           await sendReply("minha case");
+           break;
+         }
+     */
+
     try {
-        switch (removeAccentsAndSpecialCharacters(command?.toLowerCase())) {
+        switch (command?.toLowerCase()) {
             case "ai":
             case "gemini":
             case "ia":
@@ -211,7 +257,10 @@ async function startBot({ socket, data, startProcess }) {
                 break;
             }
 
-            case "antilink": {
+            case "anti-link": {
+                if (!isAdmin(userJid, remoteJid, socket)) {
+                }
+
                 if (!args.length) {
                     throw new InvalidParameterError(
                         "Você precisa digitar 1 ou 0 (ligar ou desligar)!"
@@ -237,6 +286,35 @@ async function startBot({ socket, data, startProcess }) {
                 break;
             }
 
+            case "anti-owner-tag":
+            case "nao-marcar-dono": {
+                if (!isBotOwner(userJid, remoteJid, socket)) {
+                    throw new DangerError(
+                        "Você não tem permissão para executar este comando!"
+                    );
+                }
+
+                if (!args.length) {
+                    throw new InvalidParameterError(
+                        "Use 1 ou 0 para ativar ou desativar o recurso de anti-marcação!"
+                    );
+                }
+
+                const antiTagOn = args[0] == "1";
+                const antiTagOff = args[0] == "0";
+
+                if (antiTagOn) {
+                    activateAntiOwnerTag(remoteJid);
+                } else if (antiTagOff) {
+                    deactivateAntiOwnerTag(remoteJid);
+                }
+
+                await sendSuccessReply(
+                    "Marcações ao meu dono não seram mais permitidas nesse grupo!"
+                );
+                break;
+            }
+
             case "attp": {
                 if (!args.length) {
                     throw new InvalidParameterError(
@@ -251,8 +329,14 @@ async function startBot({ socket, data, startProcess }) {
             }
 
             case "abrir":
-            case "abrirgrupo":
-            case "abrirgp": {
+            case "abrir-grupo":
+            case "abrir-gp": {
+                if (!(await isAdmin(userJid, remoteJid, socket))) {
+                    throw new DangerError(
+                        "Você não tem permissão para executar este comando!"
+                    );
+                }
+
                 try {
                     await socket.groupSettingUpdate(
                         remoteJid,
@@ -326,6 +410,38 @@ async function startBot({ socket, data, startProcess }) {
                 break;
             }
 
+            case "bolsonaro": {
+                if (!isImage) {
+                    throw new InvalidParameterError(
+                        "Você precisa marcar uma imagem ou responder a uma imagem"
+                    );
+                }
+
+                await sendWaitReact();
+
+                const fileName = getRandomNumber(10_000, 99_999).toString();
+
+                const filePath = await downloadImage(webMessage, fileName);
+
+                const buffer = fs.readFileSync(filePath);
+                const link = await upload(buffer, `${fileName}.png`);
+
+                if (!link) {
+                    throw new DangerError(
+                        "Não consegui fazer o upload da imagem, tente novamente mais tarde!"
+                    );
+                }
+
+                const url = canvas("bolsonaro", link);
+
+                await sendSuccessReact();
+
+                await sendImageFromURL(url, "Imagem gerada!");
+
+                fs.unlinkSync(filePath);
+                break;
+            }
+
             case "cep": {
                 const cep = args[0];
                 if (!cep || ![8, 9].includes(cep.length)) {
@@ -374,10 +490,43 @@ async function startBot({ socket, data, startProcess }) {
                 break;
             }
 
+            case "cadeia":
+            case "jaula":
+            case "jail": {
+                if (!isImage) {
+                    throw new InvalidParameterError(
+                        "Você precisa marcar uma imagem ou responder a uma imagem"
+                    );
+                }
+
+                await sendWaitReact();
+
+                const fileName = getRandomNumber(10_000, 99_999).toString();
+                const filePath = await downloadImage(webMessage, fileName);
+
+                const buffer = fs.readFileSync(filePath);
+                const link = await upload(buffer, `${fileName}.png`);
+
+                if (!link) {
+                    throw new DangerError(
+                        "Não consegui fazer o upload da imagem, tente novamente mais tarde!"
+                    );
+                }
+
+                const url = canvas("jail", link);
+
+                await sendSuccessReact();
+
+                await sendImageFromURL(url, "Imagem gerada!");
+
+                fs.unlinkSync(filePath);
+                break;
+            }
+
             case "dado":
             case "dados":
-            case "rolardado":
-            case "rolardados": {
+            case "rolar-dado":
+            case "rolar-dados": {
                 const number = parseInt(args[0]);
                 if (isNaN(number) || number < 1 || number > 6) {
                     throw new InvalidParameterError(
@@ -441,8 +590,23 @@ async function startBot({ socket, data, startProcess }) {
                 break;
             }
 
+            case "dono":
+            case "criador": {
+                await sendWaitReply("Processando seu pedido...");
+                await delay(2000);
+                await sendContact("MRX ( DEV )", OWNER_NUMBER);
+                return await sendSuccessReact();
+                break;
+            }
+
             case "enquete":
             case "poll": {
+                if (!(await isAdmin(userJid, remoteJid, socket))) {
+                    return await sendErrorReply(
+                        "Você não tem permissão para usar este comando!"
+                    );
+                }
+
                 if (!fullArgs || fullArgs.length < 3) {
                     throw new InvalidParameterError(
                         `\n\n- Use: ${prefix}enquete Título da enquete/Opção 1/Opção 2/Opção 3`
@@ -524,8 +688,14 @@ async function startBot({ socket, data, startProcess }) {
             }
 
             case "fechar":
-            case "fechargrupo":
-            case "fechargp": {
+            case "fechar-grupo":
+            case "fechar-gp": {
+                if (!(await isAdmin(userJid, remoteJid, socket))) {
+                    return await sendErrorReply(
+                        "Você não tem permissão para usar este comando!"
+                    );
+                }
+
                 try {
                     await socket.groupSettingUpdate(remoteJid, "announcement");
                     await sendSuccessReply("Grupo fechado com sucesso!");
@@ -538,10 +708,10 @@ async function startBot({ socket, data, startProcess }) {
                 break;
             }
 
-            case "fakechat":
-            case "fakequoted":
-            case "mensagemfake":
-            case "msgfake": {
+            case "fake-chat":
+            case "fake-quoted":
+            case "mensagem-fake":
+            case "msg-fake": {
                 if (args.length !== 3) {
                     throw new InvalidParameterError(
                         `\n\n- Use: ${prefix}fakechat @usuário / texto citado / mensagem que será enviada`
@@ -585,9 +755,9 @@ async function startBot({ socket, data, startProcess }) {
                 break;
             }
 
-            case "getjid":
-            case "getlid":
-            case "userlid": {
+            case "get-jid":
+            case "get-lid":
+            case "user-lid": {
                 if (!args.length) {
                     throw new InvalidParameterError(
                         "Você deve mencionar alguém ou informar um contato!"
@@ -604,6 +774,62 @@ async function startBot({ socket, data, startProcess }) {
                 await sendSuccessReply(
                     `\n\n- JID: ${jid}${lid ? `\n- LID: ${lid}` : ""}`
                 );
+                break;
+            }
+
+            case "get-id":
+            case "grupo-id": {
+                if (!isGroup) {
+                    throw new WarningError(
+                        "Este comando deve ser usado dentro de um grupo."
+                    );
+                }
+
+                await sendSuccessReply(`*ID do grupo*: ${remoteJid}`);
+                break;
+            }
+
+            case "google-search":
+            case "google":
+            case "pesquisar": {
+                if (fullArgs.length <= 1) {
+                    throw new InvalidParameterError(
+                        "Você precisa fornecer uma pesquisa para o Google."
+                    );
+                }
+
+                const maxLength = 100;
+
+                if (fullArgs.length > maxLength) {
+                    throw new InvalidParameterError(
+                        `O tamanho máximo da pesquisa é de ${maxLength} caracteres.`
+                    );
+                }
+
+                const data = await search("google", fullArgs);
+
+                if (!data) {
+                    throw new WarningError(
+                        "Não foi possível encontrar resultados para a pesquisa."
+                    );
+                }
+
+                let text = "";
+
+                for (const item of data) {
+                    text += `Título: *${item.title}*\n\n`;
+                    text += `Descrição: ${item.description}\n\n`;
+                    text += `URL: ${item.url}\n\n-----\n\n`;
+                }
+
+                text = text.slice(0, -2);
+
+                await sendSuccessReply(`*Pesquisa realizada*
+
+*Termo*: ${fullArgs}
+
+*Resultados*
+${text}`);
                 break;
             }
 
@@ -635,7 +861,13 @@ async function startBot({ socket, data, startProcess }) {
 
             case "hidetag":
             case "marcar":
-            case "tagall": {
+            case "tag-all": {
+                if (!(await isAdmin(userJid, remoteJid, socket))) {
+                    return await sendErrorReply(
+                        "Você não tem permissão para usar este comando!"
+                    );
+                }
+
                 const { participants } = await socket.groupMetadata(remoteJid);
                 const mentions = participants.map(({ id }) => id);
                 await sendReact("📢");
@@ -643,9 +875,9 @@ async function startBot({ socket, data, startProcess }) {
                 break;
             }
 
-            case "imagemenu":
-            case "imgmenu":
-            case "setimagemenu": {
+            case "image-menu":
+            case "img-menu":
+            case "set-image-menu": {
                 if (!(await isBotOwner(userJid, remoteJid, socket))) {
                     return await sendErrorReply(
                         "Você não tem permissão para usar este comando!"
@@ -684,13 +916,77 @@ async function startBot({ socket, data, startProcess }) {
                 break;
             }
 
+            case "inverter":
+            case "inverte":
+            case "invert": {
+                if (!isImage) {
+                    throw new InvalidParameterError(
+                        "Você precisa marcar uma imagem ou responder a uma imagem"
+                    );
+                }
+
+                await sendWaitReact();
+
+                const fileName = getRandomNumber(10_000, 99_999).toString();
+                const filePath = await downloadImage(webMessage, fileName);
+
+                const buffer = fs.readFileSync(filePath);
+                const link = await upload(buffer, `${fileName}.png`);
+
+                if (!link) {
+                    throw new Error(
+                        "Não consegui fazer o upload da imagem, tente novamente mais tarde!"
+                    );
+                }
+
+                const url = canvas("invert", link);
+
+                await sendSuccessReact();
+
+                await sendImageFromURL(url, "Imagem gerada!");
+
+                fs.unlinkSync(filePath);
+                break;
+            }
+
+            case "ia-sticker":
+            case "sticker-ia":
+            case "ia-fig":
+            case "fig-ia": {
+                if (!args[0]) {
+                    return sendWarningReply(
+                        "Você precisa fornecer uma descrição para a imagem."
+                    );
+                }
+
+                await sendWaitReply("gerando figurinha...");
+
+                const data = await imageAI("pixart", fullArgs);
+
+                if (data.image) {
+                    await sendStickerFromURL(data.image);
+                    await sendSuccessReact();
+                } else {
+                    await sendWarningReply(
+                        "Não foi possível gerar a figurinha. Tente novamente mais tarde."
+                    );
+                }
+                break;
+            }
+
             case "limpar":
-            case "limparchat":
+            case "limpar-chat":
             case "clear":
             case "clean": {
                 if (!isGroup) {
                     throw new WarningError(
                         "Esse comando só pode ser usado em grupos."
+                    );
+                }
+
+                if (!(await isAdmin(userJid, remoteJid, socket))) {
+                    return await sendErrorReply(
+                        "Você não tem permissão para usar este comando!"
                     );
                 }
 
@@ -752,81 +1048,6 @@ async function startBot({ socket, data, startProcess }) {
                 break;
             }
 
-            case "mute":
-            case "mutar": {
-                if (!isGroup) {
-                    throw new DangerError(
-                        "Este comando só pode ser usado em grupos."
-                    );
-                }
-
-                if (!args.length && !replyJid) {
-                    throw new DangerError(
-                        `Você precisa mencionar um usuário ou responder à mensagem do usuário que deseja mutar.\n\nExemplo: ${prefix}mute @fulano`
-                    );
-                }
-
-                const targetUserNumber = args.length
-                    ? onlyNumbers(args[0])
-                    : isGroupWithLid
-                    ? replyJid
-                    : onlyNumbers(replyJid);
-
-                if ([OWNER_NUMBER].includes(targetUserNumber)) {
-                    throw new DangerError("Você não pode mutar o dono do bot!");
-                }
-
-                const targetUserJid = isGroupWithLid
-                    ? targetUserNumber
-                    : toUserJid(targetUserNumber);
-
-                if (targetUserJid === toUserJid(BOT_NUMBER)) {
-                    throw new DangerError("Você não pode mutar o bot.");
-                }
-
-                const [result] =
-                    replyJid && isGroupWithLid
-                        ? [{ jid: targetUserJid, lid: targetUserJid }]
-                        : await socket.onWhatsApp(targetUserNumber);
-
-                if (result.jid === userJid) {
-                    throw new DangerError("Você não pode mutar a si mesmo!");
-                }
-
-                const groupMetadata = await getGroupMetadata();
-
-                const isUserInGroup = groupMetadata.participants.some(
-                    participant => participant.id === targetUserJid
-                );
-
-                if (!isUserInGroup) {
-                    return sendErrorReply(
-                        `O usuário @${targetUserNumber} não está neste grupo.`,
-                        [targetUserJid]
-                    );
-                }
-
-                const isTargetAdmin = groupMetadata.participants.some(
-                    participant =>
-                        participant.id === targetUserJid && participant.admin
-                );
-
-                if (checkIfMemberIsMuted(remoteJid, targetUserJid)) {
-                    return sendErrorReply(
-                        `O usuário @${targetUserNumber} já está silenciado neste grupo.`,
-                        [targetUserJid]
-                    );
-                }
-
-                muteMember(remoteJid, targetUserJid);
-
-                await sendSuccessReply(
-                    `@${targetUserNumber} foi mutado com sucesso neste grupo!`,
-                    [targetUserJid]
-                );
-                break;
-            }
-
             case "off": {
                 if (!(await isOwner(userJid, remoteJid, socket))) {
                     throw new DangerError(
@@ -849,6 +1070,12 @@ async function startBot({ socket, data, startProcess }) {
                 break;
             }
 
+            case "pix":
+            case "pagamento": {
+                await sendPaymentRequest(remoteJid, "1000", "BRL");
+                break;
+            }
+
             case "perfil":
             case "profile": {
                 if (!isGroup) {
@@ -856,53 +1083,68 @@ async function startBot({ socket, data, startProcess }) {
                         "Este comando só deve ser usado em grupo."
                     );
                 }
+
                 const targetJid = args[0]
                     ? args[0].replace(/[@ ]/g, "") + "@s.whatsapp.net"
                     : userJid;
+
                 await sendWaitReply("Carregando perfil...");
+
+                let profilePicBuffer = null;
+                let profilePicFallbackUrl = null;
+                let userName = "Usuário Desconhecido";
+                let userRole = "Membro";
+                const mentions = [targetJid];
+
                 try {
-                    let profilePicUrl;
-                    let userName;
-                    let userRole = "Membro";
-
-                    try {
-                        const { profileImage } = await getProfileImageData(
-                            socket,
-                            targetJid
+                    const { buffer, profileImage } = await getProfileImageData(
+                        targetJid,
+                        socket
+                    );
+                    if (buffer) {
+                        profilePicBuffer = buffer;
+                    } else if (profileImage) {
+                        profilePicFallbackUrl = profileImage;
+                    } else {
+                        profilePicFallbackUrl = path.join(
+                            ASSETS_DIR,
+                            "images",
+                            "default-user.png"
                         );
-                        profilePicUrl =
-                            profileImage ||
-                            `${ASSETS_DIR}/images/default-user.png`;
-
-                        const contactInfo = await socket.onWhatsApp(targetJid);
-                        userName =
-                            contactInfo[0]?.name || "Usuário Desconhecido";
-                    } catch (error) {
-                        errorLog(
-                            `Erro ao tentar pegar dados do usuário ${targetJid}: ${JSON.stringify(
-                                error,
-                                null,
-                                2
-                            )}`
-                        );
-                        profilePicUrl = `${ASSETS_DIR}/images/default-user.png`;
                     }
 
-                    const groupMetadata = await socket.groupMetadata(remoteJid);
-                    const participant = groupMetadata.participants.find(
-                        participant => participant.id === targetJid
-                    );
-                    if (participant?.admin) {
-                        userRole = "Administrador";
+                    const contactInfo = await socket.onWhatsApp(targetJid);
+                    if (contactInfo && contactInfo[0]?.name) {
+                        userName = contactInfo[0].name;
+                    } else if (contactInfo && contactInfo[0]?.verifiedName) {
+                        userName = contactInfo[0].verifiedName;
+                    } else {
+                        userName = targetJid.split("@")[0];
                     }
-
-                    const randomPercent = Math.floor(Math.random() * 100);
-                    const programPrice = (Math.random() * 5000 + 1000).toFixed(
-                        2
+                } catch (error) {
+                    errorLog(
+                        `Erro ao tentar pegar dados de perfil/contato para ${targetJid}: ${error.message}`
                     );
-                    const beautyLevel = Math.floor(Math.random() * 100) + 1;
+                    profilePicFallbackUrl = path.join(
+                        ASSETS_DIR,
+                        "images",
+                        "default-user.png"
+                    );
+                }
 
-                    const mensagem = `
+                const groupMetadata = await getGroupMetadata();
+                const participant = groupMetadata.participants.find(
+                    p => p.id === targetJid
+                );
+                if (participant?.admin) {
+                    userRole = "Administrador";
+                }
+
+                const randomPercent = Math.floor(Math.random() * 100);
+                const programPrice = (Math.random() * 5000 + 1000).toFixed(2);
+                const beautyLevel = Math.floor(Math.random() * 100) + 1;
+
+                const mensagem = `
 👤 *Nome:* @${targetJid.split("@")[0]}
 🎖️ *Cargo:* ${userRole}
 
@@ -911,23 +1153,40 @@ async function startBot({ socket, data, startProcess }) {
 🎱 *Passiva:* ${randomPercent + 5 || 10}%
 ✨ *Beleza:* ${beautyLevel}%`;
 
-                    const mentions = [targetJid];
-                    await sendSuccessReact();
-                    await sendImageFromURL(profilePicUrl, mensagem, mentions);
-                } catch (error) {
-                    console.error(error);
-                    sendErrorReply(
-                        "Ocorreu um erro ao tentar verificar o perfil."
+                await sendSuccessReact();
+
+                if (profilePicBuffer) {
+                    return await sendImageFromBuffer(
+                        profilePicBuffer,
+                        mensagem,
+                        mentions
+                    );
+                } else if (profilePicFallbackUrl) {
+                    return await sendImageFromURL(
+                        profilePicFallbackUrl,
+                        mensagem,
+                        mentions
+                    );
+                } else {
+                    await sendReply(
+                        "Não foi possível carregar a imagem de perfil, mas aqui estão as informações:\n" +
+                            mensagem
                     );
                 }
                 break;
             }
 
             case "promover":
-            case "daradm": {
+            case "dar-adm": {
                 if (!isGroup) {
                     throw new WarningError(
                         "Este comando só pode ser usado em grupo !"
+                    );
+                }
+
+                if (!(await isAdmin(userJid, remoteJid, socket))) {
+                    return await sendErrorReply(
+                        "Você não tem permissão para usar este comando!"
                     );
                 }
 
@@ -974,8 +1233,8 @@ async function startBot({ socket, data, startProcess }) {
                 break;
             }
 
-            case "pinsearch":
-            case "pinterestsearch": {
+            case "pin-search":
+            case "pinterest-search": {
                 if (!args) {
                     throw new InvalidParameterError(
                         "Informe oque devo buscar!"
@@ -1017,9 +1276,31 @@ async function startBot({ socket, data, startProcess }) {
                 break;
             }
 
+            case "pixart": {
+                if (!args[0]) {
+                    return sendWarningReply(
+                        "Você precisa fornecer uma descrição para a imagem."
+                    );
+                }
+
+                await sendWaitReply("gerando imagem...");
+
+                const data = await imageAI("pixart", fullArgs);
+
+                if (!data?.image) {
+                    return sendWarningReply(
+                        "Não foi possível gerar a imagem! Tente novamente mais tarde."
+                    );
+                }
+
+                await sendSuccessReact();
+                await sendImageFromURL(data.image);
+                break;
+            }
+
             case "play":
-            case "playaudio":
-            case "playyt": {
+            case "play-audio":
+            case "play-yt": {
                 if (!args.length) {
                     throw new InvalidParameterError(
                         "Você precisa me dizer o que deseja buscar!"
@@ -1036,8 +1317,8 @@ async function startBot({ socket, data, startProcess }) {
                 break;
             }
 
-            case "playvideo":
-            case "playvd":
+            case "play-video":
+            case "play-vd":
             case "pv": {
                 if (!args.length) {
                     throw new InvalidParameterError(
@@ -1057,6 +1338,12 @@ async function startBot({ socket, data, startProcess }) {
 
             case "get":
             case "raw": {
+                if (!isReply) {
+                    return await sendWarningReply(
+                        "Responda a uma mensagem com este comando!"
+                    );
+                }
+
                 await sendWaitReact();
                 return await sendSuccessReply(
                     `\`\`\`json\n${JSON.stringify(webMessage, null, 2)}\n\`\`\``
@@ -1137,7 +1424,7 @@ async function startBot({ socket, data, startProcess }) {
             }
 
             case "rebaixar":
-            case "tiraradm": {
+            case "tirar-adm": {
                 if (!isGroup) {
                     throw new WarningError(
                         "Este comando só pode ser usado em grupo !"
@@ -1177,7 +1464,7 @@ async function startBot({ socket, data, startProcess }) {
             }
 
             case "revelar":
-            case "x9img": {
+            case "x9-img": {
                 if (!isImage && !isVideo) {
                     throw new InvalidParameterError(
                         "Você precisa marcar uma imagem/vídeo ou responder a uma imagem/vídeo para revelá-la."
@@ -1233,6 +1520,39 @@ async function startBot({ socket, data, startProcess }) {
                     await ffmpeg.cleanup(inputPath);
                     await ffmpeg.cleanup(outputPath);
                 }
+                break;
+            }
+
+            case "rip":
+            case "morreu":
+            case "lapide": {
+                if (!isImage) {
+                    throw new InvalidParameterError(
+                        "Você precisa marcar uma imagem ou responder a uma imagem"
+                    );
+                }
+
+                await sendWaitReact();
+
+                const fileName = getRandomNumber(10_000, 99_999).toString();
+                const filePath = await downloadImage(webMessage, fileName);
+
+                const buffer = fs.readFileSync(filePath);
+                const link = await upload(buffer, `${fileName}.png`);
+
+                if (!link) {
+                    throw new Error(
+                        "Não consegui fazer o upload da imagem, tente novamente mais tarde!"
+                    );
+                }
+
+                const url = canvas("rip", link);
+
+                await sendSuccessReact();
+
+                await sendImageFromURL(url, "Imagem gerada!");
+
+                fs.unlinkSync(filePath);
                 break;
             }
 
@@ -1363,8 +1683,8 @@ async function startBot({ socket, data, startProcess }) {
                 break;
             }
 
-            case "tiktoksearch":
-            case "ttksearch": {
+            case "tiktok-search":
+            case "ttk-search": {
                 if (!fullArgs) {
                     throw new InvalidParameterError(
                         "Você precisa me dizer o que deseja buscar!"
@@ -1382,7 +1702,7 @@ async function startBot({ socket, data, startProcess }) {
             }
 
             case "tiktok":
-            case "tiktokaudio":
+            case "tiktok-audio":
             case "ttk": {
                 if (!fullArgs) {
                     throw new InvalidParameterError(
@@ -1400,9 +1720,9 @@ async function startBot({ socket, data, startProcess }) {
                 break;
             }
 
-            case "tiktokvideo":
-            case "tiktokvd":
-            case "ttkvd": {
+            case "tiktok-video":
+            case "tiktok-vd":
+            case "ttk-vd": {
                 if (!fullArgs) {
                     throw new InvalidParameterError(
                         "Você precisa informar o link do video!"
@@ -1421,7 +1741,7 @@ async function startBot({ socket, data, startProcess }) {
 
             case "up":
             case "upload":
-            case "gerarimg":
+            case "gerar-img":
             case "link": {
                 if (!isImage) {
                     throw new InvalidParameterError(
@@ -1456,12 +1776,134 @@ async function startBot({ socket, data, startProcess }) {
                 break;
             }
 
-            case "teste":
-            case "test":
-            case "tst": {
-                return await sendSuccessReply("Teste concluido!");
+            case "yt-search": {
+                if (fullArgs.length <= 1) {
+                    throw new InvalidParameterError(
+                        "Você precisa fornecer uma pesquisa para o YouTube."
+                    );
+                }
+
+                const maxLength = 100;
+
+                if (fullArgs.length > maxLength) {
+                    throw new InvalidParameterError(
+                        `O tamanho máximo da pesquisa é de ${maxLength} caracteres.`
+                    );
+                }
+
+                const data = await search("youtube", fullArgs);
+
+                if (!data) {
+                    throw new WarningError(
+                        "Não foi possível encontrar resultados para a pesquisa."
+                    );
+                }
+
+                let text = "";
+
+                for (const item of data) {
+                    text += `Título: *${item.title}*\n\n`;
+                    text += `Duração: ${item.duration}\n\n`;
+                    text += `Publicado em: ${item.published_at}\n\n`;
+                    text += `Views: ${item.views}\n\n`;
+                    text += `URL: ${item.url}\n\n-----\n\n`;
+                }
+
+                text = text.slice(0, -2);
+
+                await sendSuccessReply(`*Pesquisa realizada*
+
+*Termo*: ${fullArgs}
+
+*Resultados*
+${text}`);
                 break;
             }
+
+            case "youtube-mp3":
+            case "yt-mp3": {
+                if (!fullArgs.length) {
+                    throw new InvalidParameterError(
+                        "Você precisa enviar uma URL do YouTube!"
+                    );
+                }
+
+                await sendWaitReact();
+
+                if (!fullArgs.includes("you")) {
+                    throw new WarningError("O link não é do YouTube!");
+                }
+
+                try {
+                    const data = await download("yt-mp3", fullArgs);
+
+                    if (!data) {
+                        await sendErrorReply("Nenhum resultado encontrado!");
+                        return;
+                    }
+
+                    await sendSuccessReact();
+
+                    await sendImageFromURL(
+                        data.thumbnail,
+                        `*Título*: ${data.title}
+
+*Descrição*: ${data.description}
+*Duração em segundos*: ${data.total_duration_in_seconds}
+*Canal*: ${data.channel.name}`
+                    );
+
+                    await sendAudioFromURL(data.url);
+                } catch (error) {
+                    console.log(error);
+                    await sendErrorReply(error.message);
+                }
+                break;
+            }
+
+            case "youtube-mp4":
+            case "yt-mp4": {
+                if (!fullArgs.length) {
+                    throw new InvalidParameterError(
+                        "Você precisa enviar uma URL do YouTube!"
+                    );
+                }
+
+                await sendWaitReact();
+
+                if (!fullArgs.includes("you")) {
+                    throw new WarningError("O link não é do YouTube!");
+                }
+
+                try {
+                    const data = await download("yt-mp4", fullArgs);
+
+                    if (!data) {
+                        await sendErrorReply("Nenhum resultado encontrado!");
+                        return;
+                    }
+
+                    await sendSuccessReact();
+
+                    await sendImageFromURL(
+                        data.thumbnail,
+                        `*Título*: ${data.title}
+
+*Descrição*: ${data.description}
+*Duração em segundos*: ${data.total_duration_in_seconds}
+*Canal*: ${data.channel.name}`
+                    );
+
+                    await sendVideoFromURL(data.url);
+                } catch (error) {
+                    console.log(error);
+                    await sendErrorReply(error.message);
+                }
+                break;
+            }
+
+            default:
+                break;
         }
     } catch (error) {
         if (error instanceof InvalidParameterError) {

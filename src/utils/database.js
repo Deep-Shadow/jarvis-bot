@@ -9,7 +9,7 @@ const FILES = {
     INACTIVE_AUTO_RESPONDER_GROUPS_FILE: "inactive-auto-responder-groups",
     NOT_WELCOME_GROUPS: "not-welcome-groups",
     NOT_EXIT_GROUPS: "not-exit-groups",
-    ROUND_GROUPS: "round-groups",
+    ANTI_OWNER_TAG_GROUPS: "anti-owner-tag-groups",
     MUTE_FILE: "muted",
     ANTI_LINK_GROUPS: "anti-link-groups"
 };
@@ -129,9 +129,6 @@ exports.deactivateWelcomeGroup = (groupId) =>
 exports.isActiveWelcomeGroup = (groupId) =>
     isGroupActive(FILES.NOT_WELCOME_GROUPS, groupId);
     
-exports.isActiveRoundGroup = (groupId) =>
-    isGroupActive(FILES.ROUND_GROUPS, groupId);
-
 exports.activateAntiLinkGroup = (groupId) =>
     addGroup(FILES.ANTI_LINK_GROUPS, groupId);
 
@@ -141,52 +138,20 @@ exports.deactivateAntiLinkGroup = (groupId) =>
 exports.isActiveAntiLinkGroup = (groupId) =>
     isGroupActive(FILES.ANTI_LINK_GROUPS, groupId, false);
 
-exports.isActiveExitGroup = (groupId) => {
+exports.isActiveExitGroup = (groupId) => 
     isGroupActive(FILES.NOT_EXIT_GROUPS, groupId);
-};
 
-exports.muteMember = (groupId, memberId) => {
-    const filename = FILES.MUTE_FILE;
+exports.activateAntiOwnerTag = (groupId) => {
+  if (!groupId) return [];
+  
+  addGroup(FILES.ANTI_OWNER_TAG_GROUPS, groupId);
+}
 
-    const mutedMembers = readJSON(filename, JSON.stringify({}));
+exports.deactivateAntiOwnerTag = (groupId) => {
+  if (!groupId) return [];
+  
+  removeGroup(FILES.ANTI_OWNER_TAG_GROUPS, groupId);
+}
 
-    if (!mutedMembers[groupId]) {
-        mutedMembers[groupId] = [];
-    }
-
-    if (!mutedMembers[groupId]?.includes(memberId)) {
-        mutedMembers[groupId].push(memberId);
-    }
-
-    writeJSON(filename, mutedMembers);
-};
-
-exports.unmuteMember = (groupId, memberId) => {
-    const filename = FILES.MUTE_FILE;
-
-    const mutedMembers = readJSON(filename, JSON.stringify({}));
-
-    if (!mutedMembers[groupId]) {
-        return;
-    }
-
-    const index = mutedMembers[groupId].indexOf(memberId);
-
-    if (index !== -1) {
-        mutedMembers[groupId].splice(index, 1);
-    }
-
-    writeJSON(filename, mutedMembers);
-};
-
-exports.checkIfMemberIsMuted = (groupId, memberId) => {
-    const filename = FILES.MUTE_FILE;
-
-    const mutedMembers = readJSON(filename, JSON.stringify({}));
-
-    if (!mutedMembers[groupId]) {
-        return false;
-    }
-
-    return mutedMembers[groupId]?.includes(memberId);
-};
+exports.isActiveAntiOwnerTagGroup = (groupId) => 
+  isGroupActive(FILES.ANTI_OWNER_TAG_GROUPS, groupId, false);
