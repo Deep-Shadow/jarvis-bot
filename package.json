@@ -1,6 +1,6 @@
 {
     "name": "jarvis-bot",
-    "version": "2.0.0",
+    "version": "3.0.1",
     "description": "Um bot de WhatsApp multifuncional.",
     "main": "start.js",
     "scripts": {

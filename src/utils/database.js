@@ -5,13 +5,15 @@ const { DATABASE_DIR } = require("../config");
 const databasePath = DATABASE_DIR;
 
 const FILES = {
+    ANTI_OWNER_TAG_GROUPS: "anti-owner-tag-groups",
+    ANTI_LINK_GROUPS: "anti-link-groups",
+    EXIT_GROUPS_FILE: "exit-groups",
     INACTIVE_GROUPS: "inactive-groups",
     INACTIVE_AUTO_RESPONDER_GROUPS_FILE: "inactive-auto-responder-groups",
+    MUTE_FILE: "muted",
     NOT_WELCOME_GROUPS: "not-welcome-groups",
     NOT_EXIT_GROUPS: "not-exit-groups",
-    ANTI_OWNER_TAG_GROUPS: "anti-owner-tag-groups",
-    MUTE_FILE: "muted",
-    ANTI_LINK_GROUPS: "anti-link-groups"
+    ONLY_ADMINS_FILE: "only-admins",
 };
 
 function ensureFileExists(filePath) {
@@ -57,14 +59,92 @@ function isGroupActive(fileName, groupId, invert = true) {
     return invert ? !groups.includes(groupId) : groups.includes(groupId);
 }
 
-exports.addGroup = addGroup;
+exports.activateAntiLinkGroup = (groupId) =>
+    addGroup(FILES.ANTI_LINK_GROUPS, groupId);
+
+exports.activateAntiOwnerTag = (groupId) => {
+  if (!groupId) return [];
+  
+  addGroup(FILES.ANTI_OWNER_TAG_GROUPS, groupId);
+}
+
+exports.activateAutoResponderGroup = (groupId) => {
+    const filename = FILES.INACTIVE_AUTO_RESPONDER_GROUPS_FILE;
+
+    const inactiveAutoResponderGroups = readJSON(filename);
+
+    const index = inactiveAutoResponderGroups.indexOf(groupId);
+
+    if (index === -1) {
+        return;
+    }
+
+    inactiveAutoResponderGroups.splice(index, 1);
+
+    writeJSON(filename, inactiveAutoResponderGroups);
+};
+
+exports.activateExitGroup = (groupId) => removeGroup(FILES.NOT_EXIT_GROUPS, groupId);
 
 exports.activateGroup = (groupId) => removeGroup(FILES.INACTIVE_GROUPS, groupId);
 
+exports.activateOnlyAdmins = (groupId) => {
+    const filename = FILES.ONLY_ADMINS_FILE;
+
+    const onlyAdminsGroups = readJSON(filename, []);
+
+    if (!onlyAdminsGroups.includes(groupId)) {
+        onlyAdminsGroups.push(groupId);
+    }
+
+    writeJSON(filename, onlyAdminsGroups);
+};
+
+exports.activateWelcomeGroup = (groupId) =>
+    removeGroup(FILES.NOT_WELCOME_GROUPS, groupId);
+
+exports.deactivateAntiLinkGroup = (groupId) =>
+    removeGroup(FILES.ANTI_LINK_GROUPS, groupId);
+
+exports.deactivateAntiOwnerTag = (groupId) => {
+  if (!groupId) return [];
+  
+  removeGroup(FILES.ANTI_OWNER_TAG_GROUPS, groupId);
+}
+
+exports.deactivateAutoResponderGroup = (groupId) => {
+    const filename = FILES.INACTIVE_AUTO_RESPONDER_GROUPS_FILE;
+
+    const inactiveAutoResponderGroups = readJSON(filename);
+
+    if (!inactiveAutoResponderGroups.includes(groupId)) {
+        inactiveAutoResponderGroups.push(groupId);
+    }
+
+    writeJSON(filename, inactiveAutoResponderGroups);
+};
+
+exports.deactivateExitGroup = (groupId) => addGroup(FILES.NOT_EXIT_GROUPS, groupId);
+
 exports.deactivateGroup = (groupId) => addGroup(FILES.INACTIVE_GROUPS, groupId);
 
-exports.isActiveGroup = (groupId) =>
-    isGroupActive(FILES.INACTIVE_GROUPS, groupId);
+exports.deactivateOnlyAdmins = (groupId) => {
+    const filename = FILES.ONLY_ADMINS_FILE;
+
+    const onlyAdminsGroups = readJSON(filename, []);
+
+    const index = onlyAdminsGroups.indexOf(groupId);
+    if (index === -1) {
+        return;
+    }
+
+    onlyAdminsGroups.splice(index, 1);
+
+    writeJSON(filename, onlyAdminsGroups);
+};
+
+exports.deactivateWelcomeGroup = (groupId) =>
+    addGroup(FILES.NOT_WELCOME_GROUPS, groupId);
 
 exports.getAutoResponderResponse = match => {
     const filename = "auto-responder";
@@ -84,33 +164,11 @@ exports.getAutoResponderResponse = match => {
     return data.answer;
 };
 
-exports.activateAutoResponderGroup = (groupId) => {
-    const filename = FILES.INACTIVE_AUTO_RESPONDER_GROUPS_FILE;
+exports.isActiveAntiLinkGroup = (groupId) =>
+    isGroupActive(FILES.ANTI_LINK_GROUPS, groupId, false);
 
-    const inactiveAutoResponderGroups = readJSON(filename);
-
-    const index = inactiveAutoResponderGroups.indexOf(groupId);
-
-    if (index === -1) {
-        return;
-    }
-
-    inactiveAutoResponderGroups.splice(index, 1);
-
-    writeJSON(filename, inactiveAutoResponderGroups);
-};
-
-exports.deactivateAutoResponderGroup = (groupId) => {
-    const filename = FILES.INACTIVE_AUTO_RESPONDER_GROUPS_FILE;
-
-    const inactiveAutoResponderGroups = readJSON(filename);
-
-    if (!inactiveAutoResponderGroups.includes(groupId)) {
-        inactiveAutoResponderGroups.push(groupId);
-    }
-
-    writeJSON(filename, inactiveAutoResponderGroups);
-};
+exports.isActiveAntiOwnerTagGroup = (groupId) => 
+  isGroupActive(FILES.ANTI_OWNER_TAG_GROUPS, groupId, false);
 
 exports.isActiveAutoResponderGroup = (groupId) => {
     const filename = FILES.INACTIVE_AUTO_RESPONDER_GROUPS_FILE;
@@ -120,38 +178,19 @@ exports.isActiveAutoResponderGroup = (groupId) => {
     return !inactiveAutoResponderGroups.includes(groupId);
 };
 
-exports.activateWelcomeGroup = (groupId) =>
-    removeGroup(FILES.NOT_WELCOME_GROUPS, groupId);
-
-exports.deactivateWelcomeGroup = (groupId) =>
-    addGroup(FILES.NOT_WELCOME_GROUPS, groupId);
-
-exports.isActiveWelcomeGroup = (groupId) =>
-    isGroupActive(FILES.NOT_WELCOME_GROUPS, groupId);
-    
-exports.activateAntiLinkGroup = (groupId) =>
-    addGroup(FILES.ANTI_LINK_GROUPS, groupId);
-
-exports.deactivateAntiLinkGroup = (groupId) =>
-    removeGroup(FILES.ANTI_LINK_GROUPS, groupId);
-
-exports.isActiveAntiLinkGroup = (groupId) =>
-    isGroupActive(FILES.ANTI_LINK_GROUPS, groupId, false);
-
 exports.isActiveExitGroup = (groupId) => 
     isGroupActive(FILES.NOT_EXIT_GROUPS, groupId);
 
-exports.activateAntiOwnerTag = (groupId) => {
-  if (!groupId) return [];
-  
-  addGroup(FILES.ANTI_OWNER_TAG_GROUPS, groupId);
-}
+exports.isActiveGroup = (groupId) =>
+    isGroupActive(FILES.INACTIVE_GROUPS, groupId);
 
-exports.deactivateAntiOwnerTag = (groupId) => {
-  if (!groupId) return [];
-  
-  removeGroup(FILES.ANTI_OWNER_TAG_GROUPS, groupId);
-}
+exports.isActiveOnlyAdmins = (groupId) => {
+    const filename = FILES.ONLY_ADMINS_FILE;
 
-exports.isActiveAntiOwnerTagGroup = (groupId) => 
-  isGroupActive(FILES.ANTI_OWNER_TAG_GROUPS, groupId, false);
+    const onlyAdminsGroups = readJSON(filename, []);
+
+    return onlyAdminsGroups.includes(groupId);
+};
+
+exports.isActiveWelcomeGroup = (groupId) =>
+    isGroupActive(FILES.NOT_WELCOME_GROUPS, groupId);

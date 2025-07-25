@@ -1,7 +1,7 @@
 const path = require("path");
 
 // Prefixo dos comandos.
-exports.PREFIX = "-";
+exports.PREFIX = "/";
 
 // Emoji do bot (mude se preferir).
 exports.BOT_EMOJI = "🤖";
@@ -17,9 +17,13 @@ exports.BOT_NUMBER = "557192100391";
 // (apenas números, exatamente como está no WhatsApp).
 exports.OWNER_NUMBER = "559392179287";
 
+// LID do dono do bot.
+// Para obter o LID do dono do bot, use o comando <prefixo>get-lid @marca ou +telefone do dono.
+exports.OWNER_LID = "219999999999999@lid";
+
 // modo de desenvolvimento
 // mude o valor para ( true ) caso queira ver os logs de mensagens e eventos capturados
-exports.DEVELOPER_MODE = true;
+exports.DEVELOPER_MODE = false;
 
 // Diretório de arquivos de mídia.
 exports.ASSETS_DIR = path.resolve(__dirname, "..", "assets");
@@ -54,7 +58,7 @@ exports.SPIDER_API_BASE_URL = "https://api.spiderx.com.br/api";
 exports.SHADOW_API_BASE_URL = "https://shadow-api-3vz5.onrender.com/api";
 
 // Obtenha seu token, criando uma conta em: https://api.spiderx.com.br
-exports.SPIDER_API_TOKEN = "Ytu84FgrwE4Mfil5yC64";
+exports.SPIDER_API_TOKEN = "seu_token_aqui";
 
 // Obtenha seu token, criando uma conta em: https://shadow-api-3vz5.onrender.com
 exports.SHADOW_API_TOKEN = "seu_token_aqui";

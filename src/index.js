@@ -59,17 +59,23 @@ const {
 } = require("./services/spider-x-api");
 const { upload } = require("./services/upload");
 const {
+    activateWelcomeGroup,
+    activateExitGroup,
     activateAntiLinkGroup,
     activateAutoResponderGroup,
     activateAntiOwnerTag,
     activateGroup,
     addGroup,
+    deactivateExitGroup,
+    deactivateWelcomeGroup,
     deactivateAntiLinkGroup,
     deactivateAntiOwnerTag,
     deactivateAutoResponderGroup,
     deactivateGroup,
     getAutoResponderResponse,
     isActiveAntiLinkGroup,
+    isActiveWelcomeGroup,
+    isActiveExitGroup,
     isActiveAutoResponderGroup,
     isActiveAntiOwnerTagGroup,
     isActiveGroup,
@@ -257,8 +263,51 @@ async function startBot({ socket, data, startProcess }) {
                 break;
             }
 
+            case "auto-responder":
+            case "auto-repo":
+            case "auto-responde": {
+                if (!isAdmin(userJid, remoteJid, socket)) {
+                    throw new DangerError(
+                        "Você não tem permissão para executar este comando!"
+                    );
+                }
+
+                if (!args.length) {
+                    throw new InvalidParameterError(
+                        "Você precisa digitar 1 ou 0 (ligar ou desligar)!"
+                    );
+                }
+
+                const autoResponder = args[0] === "1";
+                const notAutoResponder = args[0] === "0";
+
+                if (!autoResponder && !notAutoResponder) {
+                    throw new InvalidParameterError(
+                        "Você precisa digitar 1 ou 0 (ligar ou desligar)!"
+                    );
+                }
+
+                if (autoResponder) {
+                    activateAutoResponderGroup(remoteJid);
+                } else {
+                    deactivateAutoResponderGroup(remoteJid);
+                }
+
+                await sendSuccessReact();
+
+                const context = autoResponder ? "ativado" : "desativado";
+
+                await sendReply(
+                    `Recurso de auto-responder ${context} com sucesso!`
+                );
+                break;
+            }
+
             case "anti-link": {
                 if (!isAdmin(userJid, remoteJid, socket)) {
+                    throw new DangerError(
+                        "Você não tem permissão para executar este comando!"
+                    );
                 }
 
                 if (!args.length) {
@@ -599,10 +648,61 @@ async function startBot({ socket, data, startProcess }) {
                 break;
             }
 
+            case "exit":
+            case "saida":
+            case "despedida": {
+                if (!(await isAdmin(userJid, remoteJid, socket))) {
+                    throw new DangerError(
+                        "Você não tem permissão para usar este comando!"
+                    );
+                }
+
+                if (!args.length) {
+                    throw new InvalidParameterError(
+                        "Você precisa digitar 1 ou 0 (ligar ou desligar)!"
+                    );
+                }
+
+                const exit = args[0] === "1";
+                const notExit = args[0] === "0";
+
+                if (!exit && !notExit) {
+                    throw new InvalidParameterError(
+                        "Você precisa digitar 1 ou 0 (ligar ou desligar)!"
+                    );
+                }
+
+                const hasActive = exit && isActiveExitGroup(remoteJid);
+                const hasInactive = notExit && !isActiveExitGroup(remoteJid);
+
+                if (hasActive || hasInactive) {
+                    throw new WarningError(
+                        `O recurso de saída já está ${
+                            exit ? "ativado" : "desativado"
+                        }!`
+                    );
+                }
+
+                if (exit) {
+                    activateExitGroup(remoteJid);
+                } else {
+                    deactivateExitGroup(remoteJid);
+                }
+
+                await sendSuccessReact();
+
+                const context = exit ? "ativado" : "desativado";
+
+                await sendReply(
+                    `Recurso de envio de mensagem de saída ${context} com sucesso!`
+                );
+                break;
+            }
+
             case "enquete":
             case "poll": {
                 if (!(await isAdmin(userJid, remoteJid, socket))) {
-                    return await sendErrorReply(
+                    throw new DangerError(
                         "Você não tem permissão para usar este comando!"
                     );
                 }
@@ -1039,6 +1139,67 @@ ${text}`);
                 break;
             }
 
+            case "link-gp":
+            case "link-grupo":
+            case "convite": {
+                if (!(await isAdmin(userJid, remoteJid, socket))) {
+                    throw new DangerError(
+                        "Você não tem permissão para usar este comando!"
+                    );
+                }
+
+                const groupInviteCode = await socket.groupInviteCode(remoteJid);
+                const inviteLink = `https://chat.whatsapp.com/${groupInviteCode}`;
+
+                let customMessage = "";
+                let sendWithPhoto = false;
+
+                if (fullArgs.includes("--foto-grupo")) {
+                    sendWithPhoto = true;
+                    customMessage = fullArgs.replace("--foto-grupo", "").trim();
+                } else if (fullArgs.includes("-fgp")) {
+                    sendWithPhoto = true;
+                    customMessage = fullArgs.replace("-fgp", "").trim();
+                } else {
+                    customMessage = fullArgs.trim();
+                }
+
+                let finalInviteMessage;
+                if (customMessage) {
+                    finalInviteMessage = `${customMessage}\n\nClique no link abaixo para entrar:\n${inviteLink}`;
+                } else {
+                    finalInviteMessage = `*🎉 Venha fazer parte do nosso grupo! 🎉*\n\nClique no link abaixo para entrar:\n${inviteLink}`;
+                }
+
+                if (sendWithPhoto) {
+                    try {
+                        const groupPhotoUrl = await socket.profilePictureUrl(
+                            remoteJid,
+                            "image"
+                        );
+
+                        if (groupPhotoUrl) {
+                            await sendImageFromURL(
+                                groupPhotoUrl,
+                                finalInviteMessage
+                            );
+                        } else {
+                            await sendReply(finalInviteMessage);
+                        }
+                    } catch (error) {
+                        console.error(
+                            "Erro ao obter ou enviar a foto do grupo:",
+                            error
+                        );
+                        await sendReply(finalInviteMessage);
+                    }
+                } else {
+                    await sendReply(finalInviteMessage);
+                }
+                await sendSuccessReact();
+                break;
+            }
+
             case "menu": {
                 await sendSuccessReact();
                 await sendImageFromFile(
@@ -1067,6 +1228,58 @@ ${text}`);
                 }
                 activateGroup(remoteJid);
                 await sendSuccessReply("Bot ativado no grupo!");
+                break;
+            }
+
+            case "only-admins":
+            case "so-admins":
+            case "so-adms": {
+                if (!(await isAdmin(userJid, remoteJid, socket))) {
+                    throw new DangerError(
+                        "Você não tem permissão para executar este comando!"
+                    );
+                }
+
+                if (!args.length) {
+                    throw new InvalidParameterError(
+                        "Você precisa digitar 1 ou 0 (ligar ou desligar)!"
+                    );
+                }
+
+                const onlyAdminOn = args[0] === "1";
+                const onlyAdminOff = args[0] === "0";
+
+                if (!onlyAdminOn && !onlyAdminOff) {
+                    throw new InvalidParameterError(
+                        "Você precisa digitar 1 ou 0 (ligar ou desligar)!"
+                    );
+                }
+
+                const hasActive = onlyAdminOn && isActiveOnlyAdmins(remoteJid);
+                const hasInactive =
+                    onlyAdminOff && !isActiveOnlyAdmins(remoteJid);
+
+                if (hasActive || hasInactive) {
+                    throw new WarningError(
+                        `O recurso de somente admins usarem meus comandos já está ${
+                            onlyAdminOn ? "ativado" : "desativado"
+                        }!`
+                    );
+                }
+
+                if (onlyAdminOn) {
+                    activateOnlyAdmins(remoteJid);
+                } else {
+                    deactivateOnlyAdmins(remoteJid);
+                }
+
+                await sendSuccessReact();
+
+                const context = onlyAdminOn ? "ativado" : "desativado";
+
+                await sendReply(
+                    `Recurso de somente admins usarem meus comandos ${context} com sucesso!`
+                );
                 break;
             }
 
@@ -1773,6 +1986,59 @@ ${text}`);
                         fs.unlinkSync(filePath);
                     }
                 }
+                break;
+            }
+
+            case "welcome":
+            case "boas-vindas":
+            case "recepcao":
+            case "entrada": {
+                if (!isAdmin(userJid, remoteJid, socket)) {
+                    throw new DangerError(
+                        "Você não tem permissão para executar este comando!"
+                    );
+                }
+
+                if (!args.length) {
+                    throw new InvalidParameterError(
+                        "Você precisa digitar 1 ou 0 (ligar ou desligar)!"
+                    );
+                }
+
+                const welcome = args[0] === "1";
+                const notWelcome = args[0] === "0";
+
+                if (!welcome && !notWelcome) {
+                    throw new InvalidParameterError(
+                        "Você precisa digitar 1 ou 0 (ligar ou desligar)!"
+                    );
+                }
+
+                const hasActive = welcome && isActiveWelcomeGroup(remoteJid);
+                const hasInactive =
+                    notWelcome && !isActiveWelcomeGroup(remoteJid);
+
+                if (hasActive || hasInactive) {
+                    throw new WarningError(
+                        `O recurso de boas-vindas já está ${
+                            welcome ? "ativado" : "desativado"
+                        }!`
+                    );
+                }
+
+                if (welcome) {
+                    activateWelcomeGroup(remoteJid);
+                } else {
+                    deactivateWelcomeGroup(remoteJid);
+                }
+
+                await sendSuccessReact();
+
+                const context = welcome ? "ativado" : "desativado";
+
+                await sendReply(
+                    `Recurso de boas-vindas ${context} com sucesso!`
+                );
                 break;
             }
 
